@@ -49470,7 +49470,7 @@ function unlinkFile(filePath) {
 function getVersion(app_1) {
   return __awaiter10(this, arguments, void 0, function* (app, additionalArgs = []) {
     let versionOutput = "";
-    additionalArgs.push("version");
+    additionalArgs.push("--version");
     debug(`Checking ${app} ${additionalArgs.join(" ")}`);
     try {
       yield exec(`${app}`, additionalArgs, {

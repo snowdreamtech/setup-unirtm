@@ -32,7 +32,7 @@ const GITHUB_RELEASE_DOWNLOAD_BASE =
 
 const NPM_PACKAGE = '@snowdreamtech/unirtm'
 
-const GO_MODULE = 'github.com/snowdreamtech/UniRTM/cmd/unirtm'
+const GO_MODULE = 'github.com/snowdreamtech/unirtm'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
