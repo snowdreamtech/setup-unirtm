@@ -1,8 +1,5 @@
 name: 'Setup UniRTM'
-description: >-
-  GitHub Action to install and setup UniRTM (Uni Runtime and Tools Manager).
-  Supports npm, pip, GitHub Release, and go install methods with smart
-  auto-detection.
+description: 'GitHub Action to install and setup UniRTM (Universal Runtime Manager) with auto-detection.'
 author: 'Snowdream Tech'
 branding:
   icon: 'download'
