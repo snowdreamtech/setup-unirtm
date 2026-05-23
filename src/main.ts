@@ -410,7 +410,7 @@ async function installViaGo(version: string): Promise<boolean> {
 async function verifyUnirtm(): Promise<string> {
   core.startGroup('Verifying unirtm installation')
   try {
-    const result = await exec.getExecOutput('unirtm', ['--version'], {
+    const result = await exec.getExecOutput('unirtm', ['version'], {
       silent: false,
       ignoreReturnCode: true
     })
