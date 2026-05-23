@@ -25,6 +25,12 @@ inputs:
     description: >-
       Arguments to pass to `unirtm install` (e.g. "node python").
 
+  trust:
+    required: false
+    default: 'false'
+    description: >-
+      If true, runs `unirtm trust` after setting up unirtm.
+
   github_token:
     required: false
     default: ${{ github.token }}

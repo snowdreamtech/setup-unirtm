@@ -103,6 +103,11 @@ export async function run(): Promise<void> {
       core.saveState('CACHE_PATHS', JSON.stringify(getCachePaths()))
     }
 
+    // Run unirtm trust if requested
+    if (core.getBooleanInput('trust')) {
+      await runUnirtmTrust()
+    }
+
     // Run unirtm install if requested
     if (core.getBooleanInput('install')) {
       await runUnirtmInstall()
@@ -425,6 +430,20 @@ async function verifyUnirtm(): Promise<string> {
       .trim()
       .match(/(\d+\.\d+\.\d+(?:-[\w.]+)?)/)
     return versionMatch ? versionMatch[1] : result.stdout.trim()
+  } finally {
+    core.endGroup()
+  }
+}
+
+// ─── Run unirtm trust ─────────────────────────────────────────────────────────
+
+/**
+ * Run `unirtm trust` to trust the configuration file.
+ */
+async function runUnirtmTrust(): Promise<void> {
+  core.startGroup('Running: unirtm trust')
+  try {
+    await exec.exec('unirtm', ['trust'])
   } finally {
     core.endGroup()
   }
