@@ -221,12 +221,16 @@ async function installViaNpm(version: string): Promise<boolean> {
     const code = await exec.exec('npm', ['install', '-g', pkg])
     if (code !== 0) return false
 
-    // Ensure npm global bin is in PATH
-    const npmBin = await exec.getExecOutput('npm', ['bin', '-g'], {
+    // Ensure npm global bin is in PATH (npm bin was removed in npm v9+)
+    const npmPrefixRes = await exec.getExecOutput('npm', ['prefix', '-g'], {
       silent: true
     })
-    const npmBinDir = npmBin.stdout.trim()
-    if (npmBinDir) core.addPath(npmBinDir)
+    const npmPrefix = npmPrefixRes.stdout.trim()
+    if (npmPrefix) {
+      const npmBinDir =
+        process.platform === 'win32' ? npmPrefix : path.join(npmPrefix, 'bin')
+      core.addPath(npmBinDir)
+    }
 
     return true
   } catch (err) {
