@@ -23,14 +23,14 @@
 
 ```yaml
 steps:
-  - uses: snowdreamtech/setup-unirtm@v0.0.1
+  - uses: snowdreamtech/setup-unirtm@v0
 ```
 
 ### Specify version
 
 ```yaml
 steps:
-  - uses: snowdreamtech/setup-unirtm@v0.0.1
+  - uses: snowdreamtech/setup-unirtm@v0
     with:
       version: '0.0.1'
 ```
@@ -39,7 +39,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: snowdreamtech/setup-unirtm@v0.0.1
+  - uses: snowdreamtech/setup-unirtm@v0
     with:
       install_method: npm # npm | pip | release | go | auto
 ```
@@ -48,7 +48,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: snowdreamtech/setup-unirtm@v0.0.1
+  - uses: snowdreamtech/setup-unirtm@v0
     with:
       install_method: release
       github_proxy: 'https://ghproxy.com/'
@@ -59,7 +59,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: snowdreamtech/setup-unirtm@v0.0.1
+  - uses: snowdreamtech/setup-unirtm@v0
     with:
       version: '0.0.1'
       install: true
@@ -72,7 +72,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: snowdreamtech/setup-unirtm@v0.0.1
+  - uses: snowdreamtech/setup-unirtm@v0
     with:
       cache_key: '{{cache_key_prefix}}-{{platform}}-{{version}}'
 ```
