@@ -218,7 +218,7 @@ async function installViaNpm(version: string): Promise<boolean> {
   core.startGroup(`Installing unirtm@${version} via npm`)
   try {
     const pkg = version ? `${NPM_PACKAGE}@${version}` : NPM_PACKAGE
-    const code = await exec.exec('npm', ['install', '-g', '--force', pkg])
+    const code = await exec.exec('npm', ['install', '-g', pkg])
     if (code !== 0) return false
 
     // Ensure npm global bin is in PATH
