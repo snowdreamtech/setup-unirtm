@@ -154,15 +154,15 @@ async function detectInstallMethod(): Promise<InstallMethod> {
 
 /**
  * Check if a CLI command is available in PATH.
+ * Cross-platform: uses `where` on Windows, `which` on Unix/macOS.
  */
 async function isCommandAvailable(cmd: string): Promise<boolean> {
   try {
-    const checkCmd =
-      process.platform === 'win32' ? `where ${cmd}` : `which ${cmd}`
-    await exec.exec('sh', ['-c', checkCmd], {
-      silent: true,
-      ignoreReturnCode: false
-    })
+    if (process.platform === 'win32') {
+      await exec.exec('where', [cmd], { silent: true, ignoreReturnCode: false })
+    } else {
+      await exec.exec('which', [cmd], { silent: true, ignoreReturnCode: false })
+    }
     return true
   } catch {
     return false
