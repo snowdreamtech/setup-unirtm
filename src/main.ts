@@ -542,9 +542,7 @@ async function processCacheKeyTemplate(
   const platform = `${getPlatformArch()}-${getRunnerImageId()}`
 
   // Hash unirtm config files
-  const fileHash = await glob.hashFiles(
-    UNIRTM_CONFIG_FILE_PATTERNS.join('\n')
-  )
+  const fileHash = await glob.hashFiles(UNIRTM_CONFIG_FILE_PATTERNS.join('\n'))
 
   // Hash install args (sorted, flags excluded)
   let installArgsHash = ''
@@ -555,10 +553,7 @@ async function processCacheKeyTemplate(
       .sort()
       .join(' ')
     if (tools) {
-      installArgsHash = crypto
-        .createHash('sha256')
-        .update(tools)
-        .digest('hex')
+      installArgsHash = crypto.createHash('sha256').update(tools).digest('hex')
     }
   }
 

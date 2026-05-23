@@ -4,7 +4,6 @@ description: >-
   Supports npm, pip, GitHub Release, and go install methods with smart
   auto-detection.
 author: 'Snowdream Tech'
-
 branding:
   icon: 'download'
   color: 'blue'
