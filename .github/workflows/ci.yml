@@ -90,7 +90,7 @@ jobs:
 
       - name: Verify unirtm in PATH
         shell: bash
-        run: unirtm --version
+        run: unirtm version
 
   # ── go install method test ──────────────────────────────────────────────────
   test-action-go:
@@ -115,4 +115,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify unirtm in PATH
-        run: unirtm --version
+        run: unirtm version
