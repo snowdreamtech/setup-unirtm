@@ -47,7 +47,10 @@ export async function run(): Promise<void> {
   try {
     // Resolve version
     const requestedVersion = core.getInput('version').trim()
-    const version = requestedVersion || (await fetchLatestVersion())
+    const version =
+      !requestedVersion || requestedVersion.toLowerCase() === 'latest'
+        ? await fetchLatestVersion()
+        : requestedVersion
     core.info(`Target unirtm version: ${version}`)
 
     // Restore cache
