@@ -1,0 +1,102 @@
+name: 'Setup UniRTM'
+description: >-
+  GitHub Action to install and setup UniRTM (Uni Runtime and Tools Manager).
+  Supports npm, pip, GitHub Release, and go install methods with smart
+  auto-detection.
+author: 'Snowdream Tech'
+
+branding:
+  icon: 'download'
+  color: 'blue'
+
+inputs:
+  version:
+    required: false
+    default: ''
+    description: >-
+      The version of unirtm to install (e.g. "0.0.1"). If empty, installs
+      the latest release.
+
+  install:
+    required: false
+    default: 'false'
+    description: >-
+      If true, runs `unirtm install` after setting up unirtm.
+
+  install_args:
+    required: false
+    default: ''
+    description: >-
+      Arguments to pass to `unirtm install` (e.g. "node python").
+
+  github_token:
+    required: false
+    default: ${{ github.token }}
+    description: >-
+      GitHub token for API authentication to avoid rate limits when fetching
+      release information or downloading from GitHub.
+
+  github_proxy:
+    required: false
+    default: ''
+    description: >-
+      Proxy prefix for GitHub download URLs. Set to a mirror URL to speed up
+      downloads in restricted networks (e.g. "https://ghproxy.com/").
+      Also reads from the GITHUB_PROXY environment variable.
+
+  install_method:
+    required: false
+    default: 'auto'
+    description: >-
+      Installation method. One of: auto, npm, pip, release, go.
+      - auto: Smart detection based on available runtimes (npm → pip → release → go)
+      - npm:  Install via `npm install -g @snowdreamtech/unirtm`
+      - pip:  Install via `pip install unirtm` (reserved, not yet available)
+      - release: Download binary from GitHub Releases
+      - go:   Install via `go install github.com/snowdreamtech/UniRTM/cmd/unirtm@...`
+
+  cache:
+    required: false
+    default: 'true'
+    description: >-
+      If true, cache the unirtm installation directory to speed up subsequent runs.
+
+  cache_save:
+    required: false
+    default: 'true'
+    description: >-
+      If true, save the cache after installation. Set to false to only restore.
+
+  cache_key_prefix:
+    required: false
+    default: 'setup-unirtm-v1'
+    description: >-
+      Prefix for the cache key. Change this value to invalidate the cache.
+
+  cache_key:
+    required: false
+    default: ''
+    description: |
+      Override the complete cache key. Supports Handlebars template variables:
+        {{version}}           - The unirtm version
+        {{cache_key_prefix}}  - The cache key prefix
+        {{platform}}          - Platform string (e.g. "linux-x64-ubuntu24")
+        {{file_hash}}         - Hash of unirtm config files (.unirtm.toml, unirtm.lock)
+        {{mise_env}}          - Value of MISE_ENV environment variable
+        {{install_args_hash}} - SHA256 hash of sorted install args
+        {{default}}           - The processed default cache key (for extension)
+
+outputs:
+  cache-hit:
+    description: 'Whether the cache was restored (true/false).'
+
+  unirtm-version:
+    description: 'The version of unirtm that was installed.'
+
+  install-method:
+    description: 'The installation method that was used (npm/pip/release/go).'
+
+runs:
+  using: node24
+  main: dist/index.js
+  post: dist/post.js

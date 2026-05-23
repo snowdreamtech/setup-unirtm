@@ -1,0 +1,118 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  # ── TypeScript build & lint ─────────────────────────────────────────────────
+  test-typescript:
+    name: TypeScript Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install Dependencies
+        id: npm-ci
+        run: npm ci
+
+      - name: Check Format
+        id: npm-format-check
+        run: npm run format:check
+
+      - name: Lint
+        id: npm-lint
+        run: npm run lint
+
+      - name: Build (package)
+        id: npm-package
+        run: npm run package
+
+  # ── Integration test matrix ─────────────────────────────────────────────────
+  test-action:
+    name: Integration Test (${{ matrix.os }} / ${{ matrix.method }})
+    runs-on: ${{ matrix.os }}
+    needs: test-typescript
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        method: [auto, npm, release]
+        exclude:
+          # go install needs go setup first; keep matrix lean
+          - method: release
+            os: windows-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (for npm method)
+        if: matrix.method == 'npm' || matrix.method == 'auto'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Test Local Action
+        id: setup-unirtm
+        uses: ./
+        with:
+          install_method: ${{ matrix.method }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cache: 'true'
+
+      - name: Print Outputs
+        id: print-outputs
+        shell: bash
+        run: |
+          echo "cache-hit     = ${{ steps.setup-unirtm.outputs.cache-hit }}"
+          echo "unirtm-version = ${{ steps.setup-unirtm.outputs.unirtm-version }}"
+          echo "install-method = ${{ steps.setup-unirtm.outputs.install-method }}"
+
+      - name: Verify unirtm in PATH
+        shell: bash
+        run: unirtm --version
+
+  # ── go install method test ──────────────────────────────────────────────────
+  test-action-go:
+    name: Integration Test (ubuntu-latest / go)
+    runs-on: ubuntu-latest
+    needs: test-typescript
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Test Local Action (go method)
+        id: setup-unirtm
+        uses: ./
+        with:
+          install_method: go
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify unirtm in PATH
+        run: unirtm --version

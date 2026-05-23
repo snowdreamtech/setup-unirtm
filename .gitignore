@@ -1,0 +1,9 @@
+# Dependency directory
+node_modules/
+
+# Test coverage
+coverage/
+
+# Note: dist/ is intentionally NOT ignored.
+# GitHub Actions requires dist/ to be committed to the repository
+# so the action runner can execute it directly.

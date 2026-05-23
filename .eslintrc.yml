@@ -1,0 +1,19 @@
+---
+env:
+  es2022: true
+  node: true
+  jest: true
+extends:
+  - eslint:recommended
+  - plugin:@typescript-eslint/recommended
+  - plugin:jest/recommended
+parser: '@typescript-eslint/parser'
+plugins:
+  - '@typescript-eslint'
+  - jest
+rules:
+  '@typescript-eslint/no-unused-vars':
+    - error
+    - argsIgnorePattern: '^_'
+  '@typescript-eslint/no-explicit-any': warn
+  no-console: warn
