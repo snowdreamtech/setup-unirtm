@@ -40432,6 +40432,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.post = post;
 /**
  * Post-action: save the unirtm cache after the main job completes.
+ * Reads PRIMARY_KEY and CACHE_PATHS state saved by main action.
  */
 const core = __importStar(__nccwpck_require__(7484));
 const cache = __importStar(__nccwpck_require__(5116));
@@ -40445,19 +40446,31 @@ async function post() {
             return;
         }
         const primaryKey = core.getState('PRIMARY_KEY');
-        const installDir = core.getState('INSTALL_DIR');
-        if (!primaryKey || !installDir) {
-            core.info('No cache state found, skipping cache save');
+        const cachePathsJson = core.getState('CACHE_PATHS');
+        if (!primaryKey || !cachePathsJson) {
+            core.info('No cache state found (cache may have been hit or disabled), skipping save');
             return;
         }
-        if (!fs.existsSync(installDir)) {
-            core.warning(`Install directory not found, skipping cache save: ${installDir}`);
+        let cachePaths;
+        try {
+            cachePaths = JSON.parse(cachePathsJson);
+        }
+        catch {
+            core.warning('Failed to parse CACHE_PATHS state, skipping cache save');
+            return;
+        }
+        // Filter to paths that actually exist on disk
+        const existingPaths = cachePaths.filter(p => fs.existsSync(p));
+        if (existingPaths.length === 0) {
+            core.info('No cache paths exist on disk, skipping cache save');
             return;
         }
         core.startGroup('Saving unirtm cache (post-action)');
-        const id = await cache.saveCache([installDir], primaryKey);
+        core.info(`Paths to cache:\n  ${existingPaths.join('\n  ')}`);
+        core.info(`Cache key: ${primaryKey}`);
+        const id = await cache.saveCache(existingPaths, primaryKey);
         if (id !== -1) {
-            core.info(`Cache saved with key: ${primaryKey}`);
+            core.info(`Cache saved successfully (key: ${primaryKey})`);
         }
         else {
             core.info('Cache already exists for this key, skipping save');
@@ -40467,7 +40480,7 @@ async function post() {
     catch (err) {
         // Never fail the workflow due to cache errors
         if (err instanceof Error) {
-            core.warning(`Cache save failed: ${err.message}`);
+            core.warning(`Cache save failed (non-fatal): ${err.message}`);
         }
     }
 }

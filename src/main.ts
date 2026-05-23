@@ -52,31 +52,41 @@ export async function run(): Promise<void> {
 
     // Restore cache
     let cacheKey: string | undefined
+    let cacheHit = false
     if (core.getBooleanInput('cache')) {
-      cacheKey = await restoreUnirtmCache(version)
+      const result = await restoreUnirtmCache(version)
+      cacheKey = result.primaryKey
+      cacheHit = result.hit
     } else {
       core.setOutput('cache-hit', false)
     }
 
-    // Determine installation method
-    const requestedMethod = core.getInput('install_method').trim() as
-      | InstallMethod
-      | 'auto'
-    const method: InstallMethod =
-      requestedMethod === 'auto'
-        ? await detectInstallMethod()
-        : requestedMethod
+    // If cache was restored, add binary dir to PATH and skip install
+    if (cacheHit) {
+      const binDir = getInstallBinDir()
+      core.addPath(binDir)
+      core.info(`Cache hit — skipping installation, added ${binDir} to PATH`)
+    } else {
+      // Determine installation method
+      const requestedMethod = core.getInput('install_method').trim() as
+        | InstallMethod
+        | 'auto'
+      const method: InstallMethod =
+        requestedMethod === 'auto'
+          ? await detectInstallMethod()
+          : requestedMethod
 
-    core.info(`Using installation method: ${method}`)
-    core.setOutput('install-method', method)
+      core.info(`Using installation method: ${method}`)
+      core.setOutput('install-method', method)
 
-    // Install unirtm
-    const installed = await installUnirtm(method, version)
-    if (!installed) {
-      core.setFailed(
-        `Failed to install unirtm@${version} via method "${method}"`
-      )
-      return
+      // Install unirtm
+      const installed = await installUnirtm(method, version)
+      if (!installed) {
+        core.setFailed(
+          `Failed to install unirtm@${version} via method "${method}"`
+        )
+        return
+      }
     }
 
     // Verify installation
@@ -84,9 +94,10 @@ export async function run(): Promise<void> {
     core.setOutput('unirtm-version', installedVersion)
     core.info(`unirtm ${installedVersion} is ready`)
 
-    // Save cache
+    // Save cache (only on cache miss; post-action handles the actual save)
     if (cacheKey && core.getBooleanInput('cache_save')) {
-      await saveUnirtmCache(cacheKey)
+      core.saveState('PRIMARY_KEY', cacheKey)
+      core.saveState('CACHE_PATHS', JSON.stringify(getCachePaths()))
     }
 
     // Run unirtm install if requested
@@ -137,15 +148,22 @@ async function detectInstallMethod(): Promise<InstallMethod> {
       core.info('✅ npm detected → using npm install')
       return 'npm'
     }
-    if (await isCommandAvailable('pip') || await isCommandAvailable('pip3')) {
-      core.info('✅ pip detected → using pip install (note: PyPI package may not be available yet)')
+    if (
+      (await isCommandAvailable('pip')) ||
+      (await isCommandAvailable('pip3'))
+    ) {
+      core.info(
+        '✅ pip detected → using pip install (note: PyPI package may not be available yet)'
+      )
       return 'pip'
     }
     if (await isCommandAvailable('go')) {
       core.info('✅ go detected → using go install')
       return 'go'
     }
-    core.info('ℹ️ No preferred runtime found → falling back to GitHub Release download')
+    core.info(
+      'ℹ️ No preferred runtime found → falling back to GitHub Release download'
+    )
     return 'release'
   } finally {
     core.endGroup()
@@ -198,7 +216,16 @@ async function installViaNpm(version: string): Promise<boolean> {
   try {
     const pkg = version ? `${NPM_PACKAGE}@${version}` : NPM_PACKAGE
     const code = await exec.exec('npm', ['install', '-g', pkg])
-    return code === 0
+    if (code !== 0) return false
+
+    // Ensure npm global bin is in PATH
+    const npmBin = await exec.getExecOutput('npm', ['bin', '-g'], {
+      silent: true
+    })
+    const npmBinDir = npmBin.stdout.trim()
+    if (npmBinDir) core.addPath(npmBinDir)
+
+    return true
   } catch (err) {
     core.warning(`npm install failed: ${errorMessage(err)}`)
     return false
@@ -249,8 +276,9 @@ async function installViaRelease(version: string): Promise<boolean> {
 
     core.info(`Download URL: ${downloadUrl}`)
 
-    const installDir = getInstallDir()
-    await fs.promises.mkdir(installDir, { recursive: true })
+    // Install binary into ~/.local/bin
+    const binDir = getInstallBinDir()
+    await fs.promises.mkdir(binDir, { recursive: true })
 
     const archivePath = path.join(os.tmpdir(), assetName)
     const extractDir = path.join(os.tmpdir(), `unirtm-extract-${Date.now()}`)
@@ -272,16 +300,16 @@ async function installViaRelease(version: string): Promise<boolean> {
     if (!binaryPath) {
       throw new Error(`Binary "${binaryName}" not found in extracted archive`)
     }
-    const destPath = path.join(installDir, binaryName)
+    const destPath = path.join(binDir, binaryName)
     await fs.promises.copyFile(binaryPath, destPath)
     if (process.platform !== 'win32') {
       await exec.exec('chmod', ['+x', destPath])
     }
 
-    core.addPath(installDir)
+    core.addPath(binDir)
     core.info(`unirtm installed to ${destPath}`)
 
-    // Cleanup
+    // Cleanup temp files
     await fs.promises.rm(archivePath, { force: true })
     await fs.promises.rm(extractDir, { recursive: true, force: true })
 
@@ -360,10 +388,9 @@ async function installViaGo(version: string): Promise<boolean> {
     if (code !== 0) return false
 
     // go installs to $GOPATH/bin or $HOME/go/bin
-    const goPathBin =
-      process.env.GOPATH
-        ? path.join(process.env.GOPATH, 'bin')
-        : path.join(os.homedir(), 'go', 'bin')
+    const goPathBin = process.env.GOPATH
+      ? path.join(process.env.GOPATH, 'bin')
+      : path.join(os.homedir(), 'go', 'bin')
     core.addPath(goPathBin)
     core.info(`Added ${goPathBin} to PATH`)
     return true
@@ -415,51 +442,93 @@ async function runUnirtmInstall(): Promise<void> {
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
 /**
+ * Return all paths that should be cached.
+ * Matches the reference pattern from UniRTM's own CI:
+ *   ~/.local/bin                          (binary, Linux + macOS)
+ *   ~/.local/share/unirtm                 (data dir, Linux)
+ *   ~/Library/Application Support/unirtm (data dir, macOS)
+ *   ~/AppData/Local/unirtm                (data dir, Windows)
+ */
+function getCachePaths(): string[] {
+  const home = os.homedir()
+  return [
+    path.join(home, '.local', 'bin'),
+    path.join(home, '.local', 'share', 'unirtm'),
+    path.join(home, 'Library', 'Application Support', 'unirtm'),
+    path.join(
+      process.env.LOCALAPPDATA ?? path.join(home, 'AppData', 'Local'),
+      'unirtm'
+    )
+  ]
+}
+
+/**
  * Restore the unirtm installation from cache.
+ * Supports primary key + OS-prefixed restore-keys for better hit rates.
  */
 async function restoreUnirtmCache(
   version: string
-): Promise<string | undefined> {
+): Promise<{ primaryKey: string; hit: boolean }> {
   core.startGroup('Restoring unirtm cache')
-  const cachePath = getInstallDir()
 
   const cacheKeyTemplate =
     core.getInput('cache_key') || DEFAULT_CACHE_KEY_TEMPLATE
   const primaryKey = await processCacheKeyTemplate(cacheKeyTemplate, version)
 
-  core.saveState('PRIMARY_KEY', primaryKey)
-  core.saveState('INSTALL_DIR', cachePath)
+  // Fallback restore-keys (OS-scoped, progressively broader)
+  const runnerOs = process.env.RUNNER_OS ?? process.platform
+  const restoreKeys = [
+    `${core.getInput('cache_key_prefix') || 'setup-unirtm-v1'}-${runnerOs.toLowerCase()}-unirtm-`,
+    `${core.getInput('cache_key_prefix') || 'setup-unirtm-v1'}-${runnerOs.toLowerCase()}-`
+  ]
 
-  const hit = await cache.restoreCache([cachePath], primaryKey)
-  core.setOutput('cache-hit', Boolean(hit))
+  const cachePaths = getCachePaths()
+  core.info(`Cache paths:\n  ${cachePaths.join('\n  ')}`)
+  core.info(`Primary key: ${primaryKey}`)
+  core.info(`Restore keys:\n  ${restoreKeys.join('\n  ')}`)
 
+  const hitKey = await cache.restoreCache(cachePaths, primaryKey, restoreKeys)
+  const hit = Boolean(hitKey)
+
+  core.setOutput('cache-hit', hit)
   if (hit) {
-    core.info(`Cache restored from key: ${hit}`)
-    core.addPath(cachePath)
+    core.info(`Cache restored from key: ${hitKey}`)
   } else {
-    core.info(`No cache found for key: ${primaryKey}`)
+    core.info('No cache found, will install fresh')
   }
+
   core.endGroup()
-  return hit ? undefined : primaryKey
+  return { primaryKey, hit }
 }
 
 /**
  * Save the unirtm installation to cache.
+ * Called from post-action (src/post.ts) after the job completes.
  */
 async function saveUnirtmCache(cacheKey: string): Promise<void> {
   core.startGroup('Saving unirtm cache')
-  const cachePath = getInstallDir()
-  if (!fs.existsSync(cachePath)) {
-    core.warning(`Install dir not found, skipping cache save: ${cachePath}`)
+  const cachePaths = getCachePaths()
+
+  // Filter to paths that actually exist (non-existent paths cause cache errors)
+  const existingPaths = cachePaths.filter(p => fs.existsSync(p))
+  if (existingPaths.length === 0) {
+    core.warning('No cache paths found on disk, skipping cache save')
     core.endGroup()
     return
   }
-  const id = await cache.saveCache([cachePath], cacheKey)
+
+  core.info(`Saving paths:\n  ${existingPaths.join('\n  ')}`)
+  const id = await cache.saveCache(existingPaths, cacheKey)
   if (id !== -1) {
     core.info(`Cache saved (key: ${cacheKey})`)
+  } else {
+    core.info('Cache already exists for this key')
   }
   core.endGroup()
 }
+
+// Export for use by post.ts
+export { saveUnirtmCache, getCachePaths }
 
 // ─── Cache Key Template ───────────────────────────────────────────────────────
 
@@ -521,9 +590,9 @@ async function processCacheKeyTemplate(
  * e.g. Linux_x86_64, Darwin_arm64, Windows_x86_64
  */
 function getTarget(): string {
-  const os = getPlatformName()
+  const osName = getPlatformName()
   const arch = getArchName()
-  return `${os}_${arch}`
+  return `${osName}_${arch}`
 }
 
 function getPlatformName(): string {
@@ -576,12 +645,14 @@ function getRunnerImageId(): string {
   return process.env.ImageOS ?? 'self-hosted'
 }
 
-// ─── Install Dir ──────────────────────────────────────────────────────────────
+// ─── Install Dirs ─────────────────────────────────────────────────────────────
 
-function getInstallDir(): string {
-  const saved = core.getState('INSTALL_DIR')
-  if (saved) return saved
-  return path.join(os.homedir(), '.local', 'bin', 'unirtm')
+/**
+ * Return the directory where the unirtm binary should be placed.
+ * This is always ~/.local/bin (cross-platform).
+ */
+function getInstallBinDir(): string {
+  return path.join(os.homedir(), '.local', 'bin')
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
