@@ -56,10 +56,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         method: [auto, npm, release]
-        exclude:
-          # go install needs go setup first; keep matrix lean
-          - method: release
-            os: windows-latest
 
     steps:
       - name: Checkout
@@ -94,9 +90,14 @@ jobs:
 
   # ── go install method test ──────────────────────────────────────────────────
   test-action-go:
-    name: Integration Test (ubuntu-latest / go)
-    runs-on: ubuntu-latest
+    name: Integration Test (${{ matrix.os }} / go)
+    runs-on: ${{ matrix.os }}
     needs: test-typescript
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout
@@ -115,4 +116,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify unirtm in PATH
+        shell: bash
         run: unirtm version
