@@ -25,7 +25,7 @@ const DEFAULT_CACHE_KEY_TEMPLATE =
   '-{{#if file_hash}}{{file_hash}}{{else}}no-config{{/if}}'
 
 const GITHUB_RELEASES_API =
-  'https://api.github.com/repos/snowdreamtech/UniRTM/releases/latest'
+  'https://api.github.com/repos/snowdreamtech/UniRTM/releases'
 
 const GITHUB_RELEASE_DOWNLOAD_BASE =
   'https://github.com/snowdreamtech/UniRTM/releases/download'
@@ -121,10 +121,10 @@ export async function run(): Promise<void> {
 // ─── Version Resolution ───────────────────────────────────────────────────────
 
 /**
- * Fetch the latest unirtm version from GitHub API.
+ * Fetch the target unirtm version (second latest) from GitHub API.
  */
 async function fetchLatestVersion(): Promise<string> {
-  core.startGroup('Fetching latest unirtm version')
+  core.startGroup('Fetching target unirtm version (second latest)')
   try {
     const token = core.getInput('github_token')
     const args = ['-fsSL', GITHUB_RELEASES_API]
@@ -134,10 +134,23 @@ async function fetchLatestVersion(): Promise<string> {
     args.push('-H', 'Accept: application/vnd.github+json')
 
     const result = await exec.getExecOutput('curl', args, { silent: true })
-    const release = JSON.parse(result.stdout) as { tag_name: string }
-    const version = release.tag_name.replace(/^v/, '')
-    core.info(`Latest version: ${version}`)
-    return version
+    const releases = JSON.parse(result.stdout) as {
+      tag_name: string
+      draft: boolean
+      prerelease: boolean
+    }[]
+
+    // Filter out drafts and prereleases to ensure stability
+    const stableReleases = releases.filter(r => !r.draft && !r.prerelease)
+
+    if (stableReleases.length >= 2) {
+      const version = stableReleases[1].tag_name.replace(/^v/, '')
+      core.info(`Second latest version: ${version}`)
+      return version
+    } else {
+      core.info(`Not enough stable releases found, falling back to 'latest'`)
+      return 'latest'
+    }
   } finally {
     core.endGroup()
   }
@@ -281,7 +294,10 @@ async function installViaRelease(version: string): Promise<boolean> {
       process.env.GITHUB_PROXY?.trim() ||
       ''
 
-    const rawUrl = `${GITHUB_RELEASE_DOWNLOAD_BASE}/v${version}/${assetName}`
+    const rawUrl =
+      version === 'latest'
+        ? `https://github.com/snowdreamtech/UniRTM/releases/latest/download/${assetName}`
+        : `${GITHUB_RELEASE_DOWNLOAD_BASE}/v${version}/${assetName}`
     const downloadUrl = githubProxy
       ? `${githubProxy.replace(/\/$/, '')}/${rawUrl}`
       : rawUrl
@@ -395,7 +411,10 @@ async function findFile(
 async function installViaGo(version: string): Promise<boolean> {
   core.startGroup(`Installing unirtm@${version} via go install`)
   try {
-    const pkg = version ? `${GO_MODULE}@v${version}` : `${GO_MODULE}@latest`
+    const pkg =
+      version && version !== 'latest'
+        ? `${GO_MODULE}@v${version}`
+        : `${GO_MODULE}@latest`
     const code = await exec.exec('go', ['install', pkg])
     if (code !== 0) return false
 
