@@ -1,7 +1,7 @@
 {
   "name": "setup-unirtm",
   "description": "GitHub Action to setup UniRTM (Uni Runtime and Tools Manager)",
-  "version": "0.0.12",
+  "version": "0.1.14",
   "author": "Snowdream Tech",
   "private": true,
   "homepage": "https://github.com/snowdreamtech/setup-unirtm",
