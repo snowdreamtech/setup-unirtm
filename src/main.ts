@@ -45,23 +45,44 @@ type InstallMethod = 'npm' | 'pip' | 'release' | 'go'
  */
 export async function run(): Promise<void> {
   try {
-    // Read the raw version input; actual resolution may be deferred
-    // depending on the install method (npm/pip resolve 'latest' natively)
     const requestedVersion = core.getInput('version').trim()
+    const requestedMethod = core.getInput('install_method').trim() as
+      | InstallMethod
+      | 'auto'
 
-    // Restore cache — for cache key we need a concrete version.
-    // When the user omitted the version we resolve to second-latest;
-    // when they said "latest" we resolve to absolute latest.
-    // A specific version is used as-is.
-    let cacheVersion = requestedVersion
-    if (!requestedVersion) {
-      cacheVersion = await fetchLatestVersion(false)
-    } else if (requestedVersion.toLowerCase() === 'latest') {
-      cacheVersion = await fetchLatestVersion(true)
+    // 1. Determine installation method
+    const method: InstallMethod =
+      requestedMethod === 'auto'
+        ? await detectInstallMethod()
+        : requestedMethod
+
+    core.info(`Using installation method: ${method}`)
+    core.setOutput('install-method', method)
+
+    // 2. Resolve version based on install method
+    let installVersion: string
+    let cacheVersion: string
+
+    if (methodUsesRegistryLatest(method)) {
+      // For npm/pip, pass the requested version directly (fallback to 'latest').
+      // No GitHub API requests.
+      installVersion = requestedVersion || 'latest'
+      cacheVersion = installVersion
+    } else {
+      // For release/go, resolve via GitHub API if 'latest' or empty.
+      if (!requestedVersion) {
+        installVersion = await fetchLatestVersion(false)
+      } else if (requestedVersion.toLowerCase() === 'latest') {
+        installVersion = await fetchLatestVersion(true)
+      } else {
+        installVersion = requestedVersion
+      }
+      cacheVersion = installVersion
     }
-    core.info(`Target unirtm version: ${cacheVersion}`)
+    
+    core.info(`Target unirtm version: ${installVersion}`)
 
-    // Restore cache
+    // 3. Restore cache
     let cacheKey: string | undefined
     let cacheHit = false
     if (core.getBooleanInput('cache')) {
@@ -78,26 +99,6 @@ export async function run(): Promise<void> {
       core.addPath(binDir)
       core.info(`Cache hit — skipping installation, added ${binDir} to PATH`)
     } else {
-      // Determine installation method
-      const requestedMethod = core.getInput('install_method').trim() as
-        | InstallMethod
-        | 'auto'
-      const method: InstallMethod =
-        requestedMethod === 'auto'
-          ? await detectInstallMethod()
-          : requestedMethod
-
-      core.info(`Using installation method: ${method}`)
-      core.setOutput('install-method', method)
-
-      // For npm/pip, pass the original requested version (which may be
-      // 'latest') so the package manager resolves it natively via its own
-      // registry.  For release/go we need a concrete version number, so
-      // we use the already-resolved cacheVersion.
-      const installVersion = methodUsesRegistryLatest(method)
-        ? requestedVersion || 'latest'
-        : cacheVersion
-
       // Install unirtm
       const installed = await installUnirtm(method, installVersion)
       if (!installed) {
