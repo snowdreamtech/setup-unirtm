@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/snowdreamtech/setup-unirtm/compare/v0.2.0...v0.2.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* defer version resolution for npm and pip ([a220f4e](https://github.com/snowdreamtech/setup-unirtm/commit/a220f4e6a5f500426f1d63414bfc3291a192ee93))
+
 ## [0.2.0](https://github.com/snowdreamtech/setup-unirtm/compare/v0.1.15...v0.2.0) (2026-05-29)
 
 
