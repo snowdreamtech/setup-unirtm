@@ -47,10 +47,12 @@ export async function run(): Promise<void> {
   try {
     // Resolve version
     const requestedVersion = core.getInput('version').trim()
-    const version =
-      !requestedVersion || requestedVersion.toLowerCase() === 'latest'
-        ? await fetchLatestVersion()
-        : requestedVersion
+    let version = requestedVersion
+    if (!requestedVersion) {
+      version = await fetchLatestVersion(false)
+    } else if (requestedVersion.toLowerCase() === 'latest') {
+      version = await fetchLatestVersion(true)
+    }
     core.info(`Target unirtm version: ${version}`)
 
     // Restore cache
@@ -121,10 +123,12 @@ export async function run(): Promise<void> {
 // ─── Version Resolution ───────────────────────────────────────────────────────
 
 /**
- * Fetch the target unirtm version (second latest) from GitHub API.
+ * Fetch the target unirtm version from GitHub API.
+ * @param absoluteLatest If true, fetches the absolute latest release. If false, fetches the second latest.
  */
-async function fetchLatestVersion(): Promise<string> {
-  core.startGroup('Fetching target unirtm version (second latest)')
+async function fetchLatestVersion(absoluteLatest: boolean): Promise<string> {
+  const targetDesc = absoluteLatest ? 'latest' : 'second latest'
+  core.startGroup(`Fetching target unirtm version (${targetDesc})`)
   try {
     const token = core.getInput('github_token')
     const args = ['-fsSL', GITHUB_RELEASES_API]
@@ -143,7 +147,11 @@ async function fetchLatestVersion(): Promise<string> {
     // Filter out drafts and prereleases to ensure stability
     const stableReleases = releases.filter(r => !r.draft && !r.prerelease)
 
-    if (stableReleases.length >= 2) {
+    if (absoluteLatest && stableReleases.length >= 1) {
+      const version = stableReleases[0].tag_name.replace(/^v/, '')
+      core.info(`Latest version: ${version}`)
+      return version
+    } else if (!absoluteLatest && stableReleases.length >= 2) {
       const version = stableReleases[1].tag_name.replace(/^v/, '')
       core.info(`Second latest version: ${version}`)
       return version
