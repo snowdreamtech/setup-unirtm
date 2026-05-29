@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/snowdreamtech/setup-unirtm/compare/v0.1.15...v0.2.0) (2026-05-29)
+
+
+### Features
+
+* resolve 'latest' to absolute latest release instead of second latest ([4f47865](https://github.com/snowdreamtech/setup-unirtm/commit/4f478651eedaf562c7728b2b5f8e40e5ab31c1b4))
+
 ## [0.1.15](https://github.com/snowdreamtech/setup-unirtm/compare/v0.1.14...v0.1.15) (2026-05-25)
 
 
