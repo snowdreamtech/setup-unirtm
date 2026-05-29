@@ -45,21 +45,27 @@ type InstallMethod = 'npm' | 'pip' | 'release' | 'go'
  */
 export async function run(): Promise<void> {
   try {
-    // Resolve version
+    // Read the raw version input; actual resolution may be deferred
+    // depending on the install method (npm/pip resolve 'latest' natively)
     const requestedVersion = core.getInput('version').trim()
-    let version = requestedVersion
+
+    // Restore cache — for cache key we need a concrete version.
+    // When the user omitted the version we resolve to second-latest;
+    // when they said "latest" we resolve to absolute latest.
+    // A specific version is used as-is.
+    let cacheVersion = requestedVersion
     if (!requestedVersion) {
-      version = await fetchLatestVersion(false)
+      cacheVersion = await fetchLatestVersion(false)
     } else if (requestedVersion.toLowerCase() === 'latest') {
-      version = await fetchLatestVersion(true)
+      cacheVersion = await fetchLatestVersion(true)
     }
-    core.info(`Target unirtm version: ${version}`)
+    core.info(`Target unirtm version: ${cacheVersion}`)
 
     // Restore cache
     let cacheKey: string | undefined
     let cacheHit = false
     if (core.getBooleanInput('cache')) {
-      const result = await restoreUnirtmCache(version)
+      const result = await restoreUnirtmCache(cacheVersion)
       cacheKey = result.primaryKey
       cacheHit = result.hit
     } else {
@@ -84,11 +90,19 @@ export async function run(): Promise<void> {
       core.info(`Using installation method: ${method}`)
       core.setOutput('install-method', method)
 
+      // For npm/pip, pass the original requested version (which may be
+      // 'latest') so the package manager resolves it natively via its own
+      // registry.  For release/go we need a concrete version number, so
+      // we use the already-resolved cacheVersion.
+      const installVersion = methodUsesRegistryLatest(method)
+        ? requestedVersion || 'latest'
+        : cacheVersion
+
       // Install unirtm
-      const installed = await installUnirtm(method, version)
+      const installed = await installUnirtm(method, installVersion)
       if (!installed) {
         core.setFailed(
-          `Failed to install unirtm@${version} via method "${method}"`
+          `Failed to install unirtm@${installVersion} via method "${method}"`
         )
         return
       }
@@ -217,6 +231,14 @@ async function isCommandAvailable(cmd: string): Promise<boolean> {
 }
 
 // ─── Installation Dispatch ────────────────────────────────────────────────────
+
+/**
+ * Returns true for install methods that can resolve 'latest' via their own
+ * registry (npm, pip), so we don't need to pre-resolve the version via GitHub.
+ */
+function methodUsesRegistryLatest(method: InstallMethod): boolean {
+  return method === 'npm' || method === 'pip'
+}
 
 async function installUnirtm(
   method: InstallMethod,
