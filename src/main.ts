@@ -52,9 +52,7 @@ export async function run(): Promise<void> {
 
     // 1. Determine installation method
     const method: InstallMethod =
-      requestedMethod === 'auto'
-        ? await detectInstallMethod()
-        : requestedMethod
+      requestedMethod === 'auto' ? await detectInstallMethod() : requestedMethod
 
     core.info(`Using installation method: ${method}`)
     core.setOutput('install-method', method)
@@ -79,7 +77,7 @@ export async function run(): Promise<void> {
       }
       cacheVersion = installVersion
     }
-    
+
     core.info(`Target unirtm version: ${installVersion}`)
 
     // 3. Restore cache
