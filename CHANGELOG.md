@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.1](https://github.com/snowdreamtech/setup-unirtm/compare/v0.4.0...v0.4.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* correctly handle Windows cache path ([9aaad0e](https://github.com/snowdreamtech/setup-unirtm/commit/9aaad0e55a81a0b835adb43067e14ea2bca5be8f))
+* skip unirtm install on exact cache hit and enhance cache logging ([d740a73](https://github.com/snowdreamtech/setup-unirtm/commit/d740a73e083a7a881237927629907527076e0a26))
+* unify cache path to ~/.local/share/unirtm for all platforms ([963b4de](https://github.com/snowdreamtech/setup-unirtm/commit/963b4de0370b2f43bb416910d050a9f98d710a9d))
+
 ## [0.4.0](https://github.com/snowdreamtech/setup-unirtm/compare/v0.3.0...v0.4.0) (2026-06-04)
 
 
