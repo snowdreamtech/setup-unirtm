@@ -69,6 +69,7 @@ jobs:
             public.ecr.aws:443
             pypi.org:443
             registry-1.docker.io:443
+            registry.npmmirror.com:443
             registry.npmjs.org:443
             registry.terraform.io:443
             registry.yarnpkg.com:443
@@ -178,6 +179,7 @@ jobs:
             public.ecr.aws:443
             pypi.org:443
             registry-1.docker.io:443
+            registry.npmmirror.com:443
             registry.npmjs.org:443
             registry.terraform.io:443
             registry.yarnpkg.com:443
@@ -285,6 +287,7 @@ jobs:
             public.ecr.aws:443
             pypi.org:443
             registry-1.docker.io:443
+            registry.npmmirror.com:443
             registry.npmjs.org:443
             registry.terraform.io:443
             registry.yarnpkg.com:443
@@ -379,6 +382,7 @@ jobs:
             public.ecr.aws:443
             pypi.org:443
             registry-1.docker.io:443
+            registry.npmmirror.com:443
             registry.npmjs.org:443
             registry.terraform.io:443
             registry.yarnpkg.com:443
