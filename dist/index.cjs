@@ -72001,6 +72001,14 @@ async function runUnirtmInstall() {
 }
 function getCachePaths() {
   const home = os8.homedir();
+  if (process.platform === "win32") {
+    return [
+      path14.join(
+        process.env.LOCALAPPDATA ?? path14.join(home, "AppData", "Local"),
+        "unirtm"
+      )
+    ];
+  }
   return [path14.join(home, ".local", "share", "unirtm")];
 }
 async function restoreUnirtmCache(version3) {
