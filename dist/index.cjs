@@ -72001,14 +72001,7 @@ async function runUnirtmInstall() {
 }
 function getCachePaths() {
   const home = os8.homedir();
-  return [
-    path14.join(home, ".local", "share", "unirtm"),
-    path14.join(home, "Library", "Application Support", "unirtm"),
-    path14.join(
-      process.env.LOCALAPPDATA ?? path14.join(home, "AppData", "Local"),
-      "unirtm"
-    )
-  ];
+  return [path14.join(home, ".local", "share", "unirtm")];
 }
 async function restoreUnirtmCache(version3) {
   startGroup("Restoring unirtm cache");

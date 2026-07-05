@@ -524,26 +524,17 @@ async function runUnirtmInstall(): Promise<void> {
   }
 }
 
-// ─── Cache ────────────────────────────────────────────────────────────────────
-
 /**
  * Return all paths that should be cached.
- * Matches the reference pattern from UniRTM's own CI:
- *   ~/.local/bin                          (binary, Linux + macOS)
- *   ~/.local/share/unirtm                 (data dir, Linux)
- *   ~/Library/Application Support/unirtm (data dir, macOS)
- *   ~/AppData/Local/unirtm                (data dir, Windows)
+ * UniRTM uses XDG Base Directory convention on all platforms:
+ *   data dir: ~/.local/share/unirtm  (Linux, macOS, Windows)
+ *
+ * Verified via `unirtm doctor` output:
+ *   data | ~/.local/share/unirtm  (contains installs/, shims/, plugins/)
  */
 function getCachePaths(): string[] {
   const home = os.homedir()
-  return [
-    path.join(home, '.local', 'share', 'unirtm'),
-    path.join(home, 'Library', 'Application Support', 'unirtm'),
-    path.join(
-      process.env.LOCALAPPDATA ?? path.join(home, 'AppData', 'Local'),
-      'unirtm'
-    )
-  ]
+  return [path.join(home, '.local', 'share', 'unirtm')]
 }
 
 /**
