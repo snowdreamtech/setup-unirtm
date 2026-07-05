@@ -599,7 +599,49 @@ describe('main.ts', () => {
       await run()
 
       expect(cache.restoreCache).toHaveBeenCalled()
-      expect(core.info).toHaveBeenCalledWith('Cache hit — tools data restored')
+      expect(core.notice).toHaveBeenCalledWith(
+        '✅ Cache hit — tools data restored from cache'
+      )
+    })
+
+    it('should skip unirtm install on exact cache hit', async () => {
+      ;(core.getBooleanInput as Mock).mockImplementation((input: string) => {
+        if (input === 'cache') return true
+        if (input === 'cache_save') return true
+        if (input === 'install') return true
+        return false
+      })
+      // Simulate exact cache hit
+      ;(cache.restoreCache as Mock).mockImplementation(
+        async (paths, key) => key
+      )
+
+      await run()
+
+      expect(core.notice).toHaveBeenCalledWith(
+        '⚡ Cache hit — skipping unirtm install (tools already restored from cache)'
+      )
+      // Should NOT call unirtm install
+      expect(exec.exec).not.toHaveBeenCalledWith(
+        'unirtm',
+        expect.arrayContaining(['install'])
+      )
+    })
+
+    it('should run unirtm install on cache miss even when cache is enabled', async () => {
+      ;(core.getBooleanInput as Mock).mockImplementation((input: string) => {
+        if (input === 'cache') return true
+        if (input === 'cache_save') return true
+        if (input === 'install') return true
+        return false
+      })
+      // Simulate cache miss
+      ;(cache.restoreCache as Mock).mockResolvedValue(undefined)
+
+      await run()
+
+      // Should call unirtm install
+      expect(exec.exec).toHaveBeenCalledWith('unirtm', ['install'])
     })
   })
 

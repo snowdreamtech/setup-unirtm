@@ -35090,6 +35090,9 @@ function error(message, properties = {}) {
 function warning(message, properties = {}) {
   issueCommand("warning", toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
+function notice(message, properties = {}) {
+  issueCommand("notice", toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+}
 function info(message) {
   process.stdout.write(message + os5.EOL);
 }
@@ -71730,7 +71733,7 @@ async function run() {
       return;
     }
     if (cacheHit) {
-      info("Cache hit \u2014 tools data restored");
+      notice("\u2705 Cache hit \u2014 tools data restored from cache");
     }
     const installedVersion = await verifyUnirtm();
     setOutput("unirtm-version", installedVersion);
@@ -71744,7 +71747,13 @@ async function run() {
       await runUnirtmTrust();
     }
     if (getBooleanInput("install")) {
-      await runUnirtmInstall();
+      if (cacheHit) {
+        notice(
+          "\u26A1 Cache hit \u2014 skipping unirtm install (tools already restored from cache)"
+        );
+      } else {
+        await runUnirtmInstall();
+      }
     }
   } catch (err) {
     if (err instanceof Error) setFailed(err.message);
@@ -72020,9 +72029,9 @@ async function restoreUnirtmCache(version3) {
   const isExactHit = hitKey === primaryKey;
   setOutput("cache-hit", isExactHit);
   if (hitKey) {
-    info(`Cache restored from key: ${hitKey}`);
+    notice(`\u2705 Cache restored from key: ${hitKey}`);
   } else {
-    info("No cache found, will install fresh");
+    warning("\u26A0\uFE0F No cache found, will install fresh");
   }
   endGroup();
   return { primaryKey, hit: isExactHit };

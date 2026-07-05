@@ -108,7 +108,7 @@ export async function run(): Promise<void> {
     }
 
     if (cacheHit) {
-      core.info('Cache hit — tools data restored')
+      core.notice('✅ Cache hit — tools data restored from cache')
     }
 
     // Verify installation
@@ -128,9 +128,15 @@ export async function run(): Promise<void> {
       await runUnirtmTrust()
     }
 
-    // Run unirtm install if requested
+    // Run unirtm install if requested (skip on exact cache hit — tools already restored)
     if (core.getBooleanInput('install')) {
-      await runUnirtmInstall()
+      if (cacheHit) {
+        core.notice(
+          '⚡ Cache hit — skipping unirtm install (tools already restored from cache)'
+        )
+      } else {
+        await runUnirtmInstall()
+      }
     }
   } catch (err) {
     if (err instanceof Error) core.setFailed(err.message)
@@ -570,9 +576,9 @@ async function restoreUnirtmCache(
 
   core.setOutput('cache-hit', isExactHit)
   if (hitKey) {
-    core.info(`Cache restored from key: ${hitKey}`)
+    core.notice(`✅ Cache restored from key: ${hitKey}`)
   } else {
-    core.info('No cache found, will install fresh')
+    core.warning('⚠️ No cache found, will install fresh')
   }
 
   core.endGroup()
