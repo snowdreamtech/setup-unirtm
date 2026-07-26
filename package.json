@@ -75,5 +75,8 @@
     "*.{md,yml,json}": [
       "prettier --write"
     ]
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-darwin-x64": "^1.1.4"
   }
 }

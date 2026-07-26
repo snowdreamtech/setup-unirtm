@@ -140,7 +140,7 @@ Supports `github_proxy` for mirror acceleration and retries (up to 3 attempts).
 ### `go`
 
 ```bash
-go install github.com/snowdreamtech/UniRTM/cmd/unirtm@v<version>
+go install github.com/snowdreamtech/unirtm@v<version>
 ```
 
 ---
