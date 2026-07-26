@@ -31,8 +31,8 @@
     "format:write": "npx prettier --write .",
     "format:check": "npx prettier --check .",
     "lint": "npx eslint .",
-    "package:index": "npx -y esbuild src/index.ts --bundle --platform=node --target=node24 --format=cjs --minify --define:import.meta.url=import_meta_url --banner:js=\"const import_meta_url = require('url').pathToFileURL(__filename).href;\" --outfile=dist/index.cjs",
-    "package:post": "npx -y esbuild src/post.ts --bundle --platform=node --target=node24 --format=cjs --minify --define:import.meta.url=import_meta_url --banner:js=\"const import_meta_url = require('url').pathToFileURL(__filename).href;\" --outfile=dist/post.cjs",
+    "package:index": "esbuild src/index.ts --bundle --platform=node --target=node24 --format=cjs --minify --define:import.meta.url=import_meta_url --banner:js=\"const import_meta_url = require('url').pathToFileURL(__filename).href;\" --outfile=dist/index.cjs",
+    "package:post": "esbuild src/post.ts --bundle --platform=node --target=node24 --format=cjs --minify --define:import.meta.url=import_meta_url --banner:js=\"const import_meta_url = require('url').pathToFileURL(__filename).href;\" --outfile=dist/post.cjs",
     "package": "npm run package:index && npm run package:post",
     "package:watch": "npm run package -- --watch",
     "test": "npx vitest run --coverage",
@@ -45,7 +45,7 @@
     "@actions/core": "3.0.1",
     "@actions/exec": "3.0.0",
     "@actions/glob": "0.7.0",
-    "@actions/io": "^3.0.2",
+    "@actions/io": "3.0.2",
     "handlebars": "4.7.9"
   },
   "devDependencies": {
@@ -55,7 +55,7 @@
     "@typescript-eslint/eslint-plugin": "8.62.1",
     "@typescript-eslint/parser": "8.62.1",
     "@vitest/coverage-v8": "4.1.9",
-    "esbuild": "^0.28.1",
+    "esbuild": "0.28.1",
     "eslint": "10.6.0",
     "eslint-plugin-prettier": "5.5.6",
     "globals": "17.7.0",
@@ -77,6 +77,6 @@
     ]
   },
   "optionalDependencies": {
-    "@rolldown/binding-darwin-x64": "^1.1.4"
+    "@rolldown/binding-darwin-x64": "1.1.4"
   }
 }
