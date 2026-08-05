@@ -139,6 +139,11 @@ export async function run(): Promise<void> {
       core.saveState('CACHE_RESULT', cacheHit ? 'true' : 'false')
     }
 
+    // Inject UniRTM shims into GITHUB_PATH
+    const shimsDir = getShimsPath()
+    core.info(`Adding shims directory to PATH: ${shimsDir}`)
+    core.addPath(shimsDir)
+
     // Write Job Summary
     await core.summary
       .addHeading('UniRTM Setup Summary', 2)
@@ -557,6 +562,32 @@ async function runUnirtmInstall(): Promise<void> {
   } finally {
     core.endGroup()
   }
+}
+
+/**
+ * Return the platform-specific shims directory path.
+ */
+function getShimsPath(): string {
+  const dataDir = process.env.UNIRTM_DATA_DIR
+  if (dataDir) {
+    return path.join(dataDir, 'shims')
+  }
+
+  const home = os.homedir()
+  if (process.platform === 'win32') {
+    return path.join(
+      process.env.LOCALAPPDATA ?? path.join(home, 'AppData', 'Local'),
+      'unirtm',
+      'shims'
+    )
+  }
+
+  const xdgDataHome = process.env.XDG_DATA_HOME
+  if (xdgDataHome) {
+    return path.join(xdgDataHome, 'unirtm', 'shims')
+  }
+
+  return path.join(home, '.local', 'share', 'unirtm', 'shims')
 }
 
 /**
