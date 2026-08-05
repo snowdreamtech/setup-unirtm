@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/snowdreamtech/setup-unirtm/compare/v0.6.0...v0.7.0) (2026-08-05)
+
+
+### Features
+
+* inject shims into GITHUB_PATH dynamically ([7288285](https://github.com/snowdreamtech/setup-unirtm/commit/7288285ac17c2f52cf659bd599483c5ae2262963))
+
+
+### Bug Fixes
+
+* correct go install path and add rolldown optional binding ([80e4a6e](https://github.com/snowdreamtech/setup-unirtm/commit/80e4a6e5d5238b59c8165cd1f8bcddd434194807))
+* remove fallback restore-keys for cache restoration ([f5b4f70](https://github.com/snowdreamtech/setup-unirtm/commit/f5b4f709b2b0de2d6afa56b02720387430110097))
+
 ## [0.6.0](https://github.com/snowdreamtech/setup-unirtm/compare/v0.5.0...v0.6.0) (2026-07-24)
 
 
